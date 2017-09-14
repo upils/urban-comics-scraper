@@ -1,0 +1,7 @@
+{
+  "mailSender" :"sender@example.com",
+  "mailPassword": "password",
+  "mailRecipient" : "recipient@example.com",
+  "mailServer":"mila.example.com",
+  "mailPort":"465"
+}

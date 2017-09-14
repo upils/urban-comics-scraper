@@ -1,0 +1,29 @@
+<style>
+.comic {
+  background-color: #464c56;
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  width:100%;
+}
+
+.collection {
+  color: #8cddff;
+}
+
+td a {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+</style>
+
+<table class="comic">
+{{ range . }}
+  <tr>
+    <td><a href="{{.Link}}">{{.Title}}</a></td>
+    <td>{{.Collection}}</td>
+    <td>{{.Date}}</td>
+    <td>{{.Price}}</td>
+  </tr>
+{{end}}
+</table>
