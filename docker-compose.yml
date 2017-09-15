@@ -1,0 +1,9 @@
+version: '3.3'
+
+services:
+  builder:
+    image: upils/urban-comics-scraper-builder
+    build: .
+    volumes:
+     - ./src:/go/src
+    restart: "no"
