@@ -1,4 +1,5 @@
 config.json
+src/bin/
 
 # Binaries for programs and plugins
 *.exe
