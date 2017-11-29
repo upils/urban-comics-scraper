@@ -7,5 +7,5 @@ docker-compose up
 echo -e "\e[32m[+] Clean containers\e[0m"
 docker-compose down
 echo -e "\e[32m[+] Changing own of the binary\e[0m"
-sudo chown  $USER:$USER src/bin/ucscraper
+sudo chown  $USER:$USER src/ucscraper
 
