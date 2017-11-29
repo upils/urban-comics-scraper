@@ -2,11 +2,15 @@ package main
 
 import (
 	"bytes"
+  "crypto/tls"
 	"encoding/json"
+  "fmt"
 	"html/template"
 	"log"
+  "net"
 	"net/http"
 	"net/smtp"
+  "net/mail"
 	"os"
 	"regexp"
 	"strings"
@@ -31,16 +35,19 @@ type Issue struct {
 
 // Configuration represent the configuration
 type Configuration struct {
-	mailSender    string
-	mailPassword  string
-	mailRecipient string
-	mailServer    string
-	mailPort      string
+	MailSender    string
+	MailPassword  string
+	MailRecipient string
+	MailServer    string
+	MailPort      string
 }
 
 // fetchConf go fetch the configuration from a file and put it in Configuration object
 func fetchConf() (configuration Configuration, err error) {
-	file, _ := os.Open("config.json")
+	file, err := os.Open("config.json")
+  if err != nil {
+    log.Fatal(err)
+  }
 	decoder := json.NewDecoder(file)
 
 	configuration = Configuration{}
@@ -178,17 +185,79 @@ func getPrice(doc *goquery.Document) (issuePrice string) {
 
 // sendMail build and send the mail
 func sendMail(detailsIssues string, configuration Configuration) (err error) {
-	auth := smtp.PlainAuth("", configuration.mailSender, configuration.mailPassword, configuration.mailServer)
+    from := mail.Address{"", configuration.MailSender}
+    to   := mail.Address{"", configuration.MailRecipient}
+    subj := "Checklist UrbanComics"
+    body := detailsIssues
 
-	to := []string{configuration.mailRecipient}
-	msg := []byte("To:" + configuration.mailRecipient + "\r\n" +
-		"Subject: Checklist UrbanComics\r\n" +
-		"\r\n" +
-		"This is the email body.\r\n" +
-		detailsIssues)
-	err = smtp.SendMail(configuration.mailServer+":"+configuration.mailPort, auth, configuration.mailSender, to, msg)
+    // Setup headers
+    headers := make(map[string]string)
+    headers["From"] = from.String()
+    headers["To"] = to.String()
+    headers["Subject"] = subj
+    headers["MIME-Version"] = "1.0"
+    headers["Content-Type"] = "text/html; charset=\"utf-8\""
 
-	return
+    // Setup message
+    message := ""
+    for k,v := range headers {
+        message += fmt.Sprintf("%s: %s\r\n", k, v)
+    }
+    message += "\r\n" + body
+
+    // Connect to the SMTP Server
+    servername := configuration.MailServer + ":"+ configuration.MailPort
+
+    host, _, _ := net.SplitHostPort(servername)
+
+    auth := smtp.PlainAuth("",configuration.MailSender, configuration.MailPassword, host)
+
+    // TLS config
+    tlsconfig := &tls.Config {
+        InsecureSkipVerify: true,
+        ServerName: host,
+    }
+
+    c, err := smtp.Dial(servername)
+    if err != nil {
+        log.Panic(err)
+    }
+
+    c.StartTLS(tlsconfig)
+
+    // Auth
+    if err = c.Auth(auth); err != nil {
+        log.Panic(err)
+    }
+
+    // To && From
+    if err = c.Mail(from.Address); err != nil {
+        log.Panic(err)
+    }
+
+    if err = c.Rcpt(to.Address); err != nil {
+        log.Panic(err)
+    }
+
+    // Data
+    w, err := c.Data()
+    if err != nil {
+        log.Panic(err)
+    }
+
+    _, err = w.Write([]byte(message))
+    if err != nil {
+        log.Panic(err)
+    }
+
+    err = w.Close()
+    if err != nil {
+        log.Panic(err)
+    }
+
+    c.Quit()
+
+  return
 }
 
 func renderIssues(detailsIssuelist []Issue) (mailContent string, err error) {
@@ -201,7 +270,7 @@ func renderIssues(detailsIssuelist []Issue) (mailContent string, err error) {
 	}
 
 	mailContent = tpl.String()
-	log.Printf("Resulting mail content: %s\n", mailContent)
+	//log.Printf("Resulting mail content: %s\n", mailContent)
 
 	return
 }
