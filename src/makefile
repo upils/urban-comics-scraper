@@ -3,10 +3,11 @@ NAME=ucscraper
 build:
 	go build -o bin/${NAME}
 
-build_docker:
+build_docker_linux:
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ${NAME}
 
-all: build run
+build_docker_macos:
+	CGO_ENABLED=0 GOOS=darwin go build -a -installsuffix cgo -o ${NAME}
 
 run:
 	./bin/${NAME}
