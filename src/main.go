@@ -2,15 +2,15 @@ package main
 
 import (
 	"bytes"
-  "crypto/tls"
+	"crypto/tls"
 	"encoding/json"
-  "fmt"
+	"fmt"
 	"html/template"
 	"log"
-  "net"
+	"net"
 	"net/http"
+	"net/mail"
 	"net/smtp"
-  "net/mail"
 	"os"
 	"regexp"
 	"strings"
@@ -45,9 +45,9 @@ type Configuration struct {
 // fetchConf go fetch the configuration from a file and put it in Configuration object
 func fetchConf() (configuration Configuration, err error) {
 	file, err := os.Open("config.json")
-  if err != nil {
-    log.Fatal(err)
-  }
+	if err != nil {
+		log.Fatal(err)
+	}
 	decoder := json.NewDecoder(file)
 
 	configuration = Configuration{}
@@ -185,79 +185,79 @@ func getPrice(doc *goquery.Document) (issuePrice string) {
 
 // sendMail build and send the mail
 func sendMail(detailsIssues string, configuration Configuration) (err error) {
-    from := mail.Address{"", configuration.MailSender}
-    to   := mail.Address{"", configuration.MailRecipient}
-    subj := "Checklist UrbanComics"
-    body := detailsIssues
+	from := mail.Address{"", configuration.MailSender}
+	to := mail.Address{"", configuration.MailRecipient}
+	subj := "Checklist UrbanComics"
+	body := detailsIssues
 
-    // Setup headers
-    headers := make(map[string]string)
-    headers["From"] = from.String()
-    headers["To"] = to.String()
-    headers["Subject"] = subj
-    headers["MIME-Version"] = "1.0"
-    headers["Content-Type"] = "text/html; charset=\"utf-8\""
+	// Setup headers
+	headers := make(map[string]string)
+	headers["From"] = from.String()
+	headers["To"] = to.String()
+	headers["Subject"] = subj
+	headers["MIME-Version"] = "1.0"
+	headers["Content-Type"] = "text/html; charset=\"utf-8\""
 
-    // Setup message
-    message := ""
-    for k,v := range headers {
-        message += fmt.Sprintf("%s: %s\r\n", k, v)
-    }
-    message += "\r\n" + body
+	// Setup message
+	message := ""
+	for k, v := range headers {
+		message += fmt.Sprintf("%s: %s\r\n", k, v)
+	}
+	message += "\r\n" + body
 
-    // Connect to the SMTP Server
-    servername := configuration.MailServer + ":"+ configuration.MailPort
+	// Connect to the SMTP Server
+	servername := configuration.MailServer + ":" + configuration.MailPort
 
-    host, _, _ := net.SplitHostPort(servername)
+	host, _, _ := net.SplitHostPort(servername)
 
-    auth := smtp.PlainAuth("",configuration.MailSender, configuration.MailPassword, host)
+	auth := smtp.PlainAuth("", configuration.MailSender, configuration.MailPassword, host)
 
-    // TLS config
-    tlsconfig := &tls.Config {
-        InsecureSkipVerify: true,
-        ServerName: host,
-    }
+	// TLS config
+	tlsconfig := &tls.Config{
+		InsecureSkipVerify: true,
+		ServerName:         host,
+	}
 
-    c, err := smtp.Dial(servername)
-    if err != nil {
-        log.Panic(err)
-    }
+	c, err := smtp.Dial(servername)
+	if err != nil {
+		log.Panic(err)
+	}
 
-    c.StartTLS(tlsconfig)
+	c.StartTLS(tlsconfig)
 
-    // Auth
-    if err = c.Auth(auth); err != nil {
-        log.Panic(err)
-    }
+	// Auth
+	if err = c.Auth(auth); err != nil {
+		log.Panic(err)
+	}
 
-    // To && From
-    if err = c.Mail(from.Address); err != nil {
-        log.Panic(err)
-    }
+	// To && From
+	if err = c.Mail(from.Address); err != nil {
+		log.Panic(err)
+	}
 
-    if err = c.Rcpt(to.Address); err != nil {
-        log.Panic(err)
-    }
+	if err = c.Rcpt(to.Address); err != nil {
+		log.Panic(err)
+	}
 
-    // Data
-    w, err := c.Data()
-    if err != nil {
-        log.Panic(err)
-    }
+	// Data
+	w, err := c.Data()
+	if err != nil {
+		log.Panic(err)
+	}
 
-    _, err = w.Write([]byte(message))
-    if err != nil {
-        log.Panic(err)
-    }
+	_, err = w.Write([]byte(message))
+	if err != nil {
+		log.Panic(err)
+	}
 
-    err = w.Close()
-    if err != nil {
-        log.Panic(err)
-    }
+	err = w.Close()
+	if err != nil {
+		log.Panic(err)
+	}
 
-    c.Quit()
+	c.Quit()
 
-  return
+	return
 }
 
 func renderIssues(detailsIssuelist []Issue) (mailContent string, err error) {
